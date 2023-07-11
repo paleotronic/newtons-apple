@@ -51,8 +51,20 @@ func (t MessageType) String() string {
 	}
 }
 
+type ArgType int
+
+const (
+	ArgTypeByte ArgType = 0x00
+	ArgTypeWord ArgType = 0x01
+)
+
 type ProtocolMessage struct {
 	Type MessageType
 	Size int
 	Body []byte
+}
+
+type Argument struct {
+	Name string
+	Type ArgType
 }
