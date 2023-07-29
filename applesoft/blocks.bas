@@ -1,0 +1,112 @@
+ 5 GR 
+ 10 BW=2 : BH=4 : REM block sizes
+ 20 PHYSICS=8192 : GOSUB 5000 : GOSUB 1100
+ 30 OB=0:PX=5:PY=37:WW=30:HH=2:CO=3:GOSUB 2400: REM floor 
+ 40 GOSUB 1700 : REM start physics
+ 50 FO=1: HE=0: GOSUB 2700: REM set force of 50 units, 180 deg (downwards)
+ 60 BX=1 : REM next box
+ 70 FOR J=1 TO 6: GOSUB 500 : NEXT J : REM spawn next box
+ 80 FOR Y=1 TO 50 : NEXT Y
+ 90 GOSUB 1900 : REM update video
+ 100 GOTO 80
+
+ 500 REM create box
+ 510 OB=BX : GOSUB 1500 : REM create obj 'bx'
+ 520 OB=BX : EL=20 : GOSUB 2800: REM set elasticity to 20 percent
+ 530 OB=BX : CO=INT(RND(1)*6)+1 : GOSUB 1200 : REM set color to random
+ 550 OB=BX : VX=0 : VY=0 : GOSUB 1400 : REM set velocity (px/sec)
+ 560 OB=BX : PX=5+INT(RND(1)*20)+1 : PY=0 : GOSUB 1600 : REM set object position
+ 570 OB=BX : WW=BW : HH=BH : GOSUB 2300 : REM set object rect
+ 580 BX = BX + 1 : IF BX > 15 THEN BX = 1
+ 590 RETURN
+
+ 1000 REM set-object-mass OB=objectid, MA = mass
+ 1010 POKE 768,4: POKE 769,OB: POKE 770,MA: CALL PHYSICS
+ 1020 RETURN
+ 
+ 1100 REM init-physics
+ 1110 POKE 768,0: CALL PHYSICS
+ 1120 RETURN
+ 
+ 1200 REM set-object-color OB=objectid, CO = color
+ 1210 POKE 768,3: POKE 769,OB: POKE 770,CO: CALL PHYSICS
+ 1220 RETURN
+
+ 1300 REM set-object-type OB=objectid, TY = type (0=elastic, 1=mechanical)
+ 1310 POKE 768,5: POKE 769,OB: POKE 770,TY: CALL PHYSICS
+ 1320 RETURN
+ 
+ 1400 REM set-object-velocity OB=objectid, VX = xvel, VY = yvel (-127 to +127)
+ 1405 IF VX < 0 THEN VX = 256 + VX
+ 1406 IF VY < 0 THEN VY = 256 + VY
+ 1410 POKE 768,2: POKE 769,OB: POKE 770,VX: POKE 771,VY: CALL PHYSICS
+ 1420 RETURN
+ 
+ 1500 REM define-object OB=object-id
+ 1510 POKE 768,1: POKE 769,OB: CALL PHYSICS
+ 1520 RETURN
+ 
+ 1600 REM set-object-position OB=objectid, PX = x, PY = y
+ 1610 POKE 768,6: POKE 769,OB: POKE 770,PX: POKE 771,PY: CALL PHYSICS
+ 1620 RETURN
+ 
+ 1700 REM start-physics
+ 1710 POKE 768,32: CALL PHYSICS
+ 1720 RETURN
+ 
+ 1800 REM stop-physics
+ 1810 POKE 768,33: CALL PHYSICS
+ 1820 RETURN
+ 
+ 1900 REM request-update-video
+ 1910 POKE 768,34: CALL PHYSICS
+ 1920 RETURN
+ 
+ 2000 REM get-object-pos OB=object-id
+ 2010 POKE 768,7: POKE 769,OB: CALL PHYSICS
+ 2020 PX = PEEK(768) : PY = PEEK(769)
+ 2030 RETURN
+ 
+ 2100 REM get-object-color OB=object-id
+ 2110 POKE 768,8: POKE 769,OB: CALL PHYSICS
+ 2120 CO = PEEK(768) 
+ 2130 RETURN
+ 
+ 2200 REM get-object-oob-state OB=object-id OO=1 (out), OO=0 (in)
+ 2210 POKE 768,9: POKE 769,OB: CALL PHYSICS
+ 2220 OO = PEEK(768) 
+ 2230 RETURN
+ 
+ 2300 REM set-object-rect OB=object-id WW=width, HH=HEIGHT
+ 2310 POKE 768,10: POKE 769,OB: POKE 770,WW: POKE 771,HH: CALL PHYSICS
+ 2320 RETURN
+ 
+ 2400 REM set-block-rect OB=object-id WW=width, HH=HEIGHT, PX=x, PY=y, CO=color
+ 2410 POKE 768,11: POKE 769,OB: POKE 770,PX: POKE 771,PY: POKE 772,WW: POKE 773, HH: POKE 774, CO: CALL PHYSICS
+ 2420 RETURN
+ 
+ 2500 REM get-object-collisions OB=object-id -> CO=1 (yes) 0 (no) OB=objid
+ 2510 POKE 768,12: POKE 769,OB: CALL PHYSICS
+ 2520 CO = PEEK(768) : OB = PEEK(769)
+ 2530 RETURN
+
+ 2600 REM set-velocity-heading OB=object-id VE=vel HE=heading (0-359)
+ 2605 HH=INT(HE/256) : LL=HE-HH*256
+ 2610 POKE 768,13: POKE 769,OB: POKE770,VE: POKE771,LL: POKE772,HH: CALL PHYSICS
+ 2620 RETURN
+
+ 2700 REM set-force FO=force HE=heading (0-359)
+ 2705 HH=INT(HE/256) : LL=HE-HH*256
+ 2710 POKE 768,14: POKE 769,FO: POKE770,LL: POKE771,HH: CALL PHYSICS
+ 2720 RETURN
+
+ 2800 REM set-object-elasticity OB=object-id, EL=elasticity
+ 2810 POKE 768,15: POKE 769,OB: POKE 770, EL: CALL PHYSICS
+ 2820 CO = PEEK(768) 
+ 2830 RETURNLIST
+ 
+ 5000 REM load physics driver
+ 5010 D$=CHR$(4)
+ 5020 PRINT D$;"BLOAD SERIA"
+ 5030 RETURN
+ 
