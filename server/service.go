@@ -89,7 +89,7 @@ func (s internalPhysicsService) ServeTELNET(ctx telnet.Context, w telnet.Writer,
 
 	log.Printf("PhysicsService: new connection")
 
-	s.sendWelcome(w)
+	// s.sendWelcome(w)
 
 	var buffer [1]byte // Seems like the length of the buffer needs to be small, otherwise will have to wait for buffer to fill up.
 	p := buffer[:]
@@ -159,6 +159,23 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w tel
 	log.Printf("handleMessage: received message '%s' (%d bytes)", msg.Type, len(msg.Body))
 
 	switch msg.Type {
+	case proto.MsgHello:
+		params, _, err := s.deserialize(
+			msg.Body,
+			[]proto.Argument{
+				{Name: "value", Type: proto.ArgTypeWord},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		if params["value"].(int) != 0xDEAD {
+			return nil, errors.New("unexpected init")
+		}
+		return &proto.ProtocolMessage{
+			Type: proto.MsgGreeting,
+			Body: append([]byte("HELLO\r")),
+		}, nil
 	case proto.MsgRequestDeltas:
 		deltas := s.pe.screen.GetDeltasWithBase(1024)
 		if len(deltas) > 0 {

@@ -353,7 +353,7 @@ INIT
 * BIT [3-0]  BAUD - 9600 (1110) / 19.2K (1111)
 *                   4800 (1100) / 2400  (1010)
 ******* USING N81 INTERNAL AT 9600 BAUD
-          LDA #%00011111
+          LDA #%00010000
           STA CONTROLREG
 
 ********* LOAD VALUES INTO COMMANDREG
@@ -368,10 +368,10 @@ INIT
           STA COMMANDREG
           LDA DATAREG    ; Pull from DATAREG on init just because
           ;
-        * LDX #12
-        * LDA #<MODEMINIT
-        * LDY #>MODEMINIT
-        * JSR SENDCOMMAND
+        LDX #HELLO_L
+        LDA #<HELLO
+        LDY #>HELLO
+        JSR SENDCOMMAND
         JSR RECVCOMMAND
         RTS
     
@@ -379,6 +379,10 @@ MODEMINIT  ASC 'ATZ'
            DB 13
            ASC 'ATDT407'
            DB 13
+
+HELLO_L = 5
+HELLO
+           DB $FF,$2,$0,$AD,$DE
 
 INITPHYSICS
            DB $01,$1,$0,$0

@@ -39,6 +39,7 @@ const (
 	//
 	MsgOk    MessageType = 0xf0
 	MsgError MessageType = 0xf1
+	MsgHello MessageType = 0xff
 )
 
 func (t MessageType) String() string {

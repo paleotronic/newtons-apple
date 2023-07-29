@@ -189,7 +189,7 @@ func (p *PhysicsEngine) addRect(slot int, width, height float64, mass float64, p
 		// 		b.body.RemoveShape(s)
 		// 	}
 		// })
-		p.space.RemoveBody(b.body)
+		// p.space.RemoveBody(b.body)
 	}
 	var b = p.space.AddBody(cp.NewBody(mass, cp.MomentForBox(mass, width, height)))
 	b.SetMass(mass)
@@ -236,7 +236,7 @@ func (p *PhysicsEngine) addCircle(slot int, radius float64, mass float64, pos cp
 		// 		b.body.RemoveShape(s)
 		// 	}
 		// })
-		p.space.RemoveBody(b.body)
+		// p.space.RemoveBody(b.body)
 	}
 	var b = p.space.AddBody(cp.NewBody(mass, cp.MomentForCircle(mass, 0, radius, cp.Vector{})))
 	b.SetMass(mass)
