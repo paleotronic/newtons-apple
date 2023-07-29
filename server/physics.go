@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"sort"
 	"sync"
 	"time"
 
@@ -34,6 +35,7 @@ type PhysicsObject struct {
 	bodyType     int
 	collided     bool
 	collidedWith int
+	elasticity   float64
 }
 
 func (po *PhysicsObject) undraw(screen *LoResBuffer, color int) {
@@ -116,6 +118,12 @@ func NewPhysicsEngine(x0, y0, x1, y1 float64, interval time.Duration) *PhysicsEn
 	return p
 }
 
+func (p *PhysicsEngine) SetForce(f float64, heading float64) {
+	heading = 360 - heading
+	fv := headingToVector(heading).Mult(f)
+	p.space.SetGravity(fv)
+}
+
 func (p *PhysicsEngine) BeginCollision(arb *cp.Arbiter, space *cp.Space, userData interface{}) bool {
 	a, b := arb.Bodies()
 	if aID, ok := a.UserData.(int); ok {
@@ -179,8 +187,10 @@ func headingToVector(h float64) cp.Vector {
 }
 
 func (p *PhysicsEngine) addRect(slot int, width, height float64, mass float64, pos cp.Vector, vel cp.Vector, color int, bodyType int, replace bool) {
+	var elasticity float64 = 1
 	if b := p.objects[slot%maxObjects]; b != nil {
 		if replace {
+			elasticity = b.elasticity
 			mass = b.body.Mass()
 			vel = b.body.Velocity()
 			pos = b.body.Position()
@@ -198,14 +208,14 @@ func (p *PhysicsEngine) addRect(slot int, width, height float64, mass float64, p
 	b.SetAngle(0)
 	b.SetPosition(pos)
 	var s = p.space.AddShape(cp.NewBox(b, width, height, 0))
-	s.SetElasticity(1)
+	s.SetElasticity(elasticity)
 	s.SetFriction(0)
 	s.SetMass(mass)
 	b.SetType(bodyType)
 	b.UserData = slot % maxObjects
 	b.SetVelocity(vel.X, vel.Y)
 	s.SetCollisionType(1)
-	p.objects[slot%maxObjects] = &PhysicsObject{color: color, body: b, width: width, height: height, kind: stRect, lastPubX: -1, lastPubY: -1}
+	p.objects[slot%maxObjects] = &PhysicsObject{elasticity: elasticity, color: color, body: b, width: width, height: height, kind: stRect, lastPubX: -1, lastPubY: -1}
 }
 
 func (p *PhysicsEngine) RemoveObject(id int) {
@@ -228,8 +238,10 @@ func (p *PhysicsEngine) RemoveObject(id int) {
 }
 
 func (p *PhysicsEngine) addCircle(slot int, radius float64, mass float64, pos cp.Vector, vel cp.Vector, color int, bodyType int, replace bool) {
+	var elasticity float64 = 1
 	if b := p.objects[slot%maxObjects]; b != nil {
 		if replace {
+			elasticity = b.elasticity
 			mass = b.body.Mass()
 			vel = b.body.Velocity()
 			pos = b.body.Position()
@@ -247,14 +259,14 @@ func (p *PhysicsEngine) addCircle(slot int, radius float64, mass float64, pos cp
 	b.SetAngle(0)
 	b.SetPosition(pos)
 	var s = p.space.AddShape(cp.NewCircle(b, radius, cp.Vector{}))
-	s.SetElasticity(1)
+	s.SetElasticity(elasticity)
 	s.SetFriction(0)
 	s.SetMass(mass)
 	b.SetType(bodyType)
 	b.SetVelocity(vel.X, vel.Y)
 	s.SetCollisionType(1)
 	b.UserData = slot % maxObjects
-	p.objects[slot%maxObjects] = &PhysicsObject{color: color, body: b, radius: radius, kind: stCircle, lastPubX: -1, lastPubY: -1}
+	p.objects[slot%maxObjects] = &PhysicsObject{elasticity: elasticity, color: color, body: b, radius: radius, kind: stCircle, lastPubX: -1, lastPubY: -1}
 }
 
 func (p *PhysicsEngine) Start() {
@@ -339,6 +351,18 @@ func (p *PhysicsEngine) GetObjectOOB(id int) int {
 	return 0
 }
 
+func (p *PhysicsEngine) SetObjectVelocityHeading(id int, v float64, heading float64) {
+	heading = 360 - heading
+	p.Lock()
+	defer p.Unlock()
+	o := p.objects[id%maxObjects]
+	if o == nil {
+		return
+	}
+	fv := headingToVector(heading).Mult(v)
+	o.body.SetVelocity(fv.X, fv.Y)
+}
+
 func (p *PhysicsEngine) SetObjectRect(id int, w, h int) {
 	p.Lock()
 	defer p.Unlock()
@@ -393,6 +417,20 @@ func (p *PhysicsEngine) SetObjectType(id int, kind int) {
 	}
 }
 
+func (p *PhysicsEngine) SetObjectElasticity(id int, e float64) {
+	p.Lock()
+	defer p.Unlock()
+	o := p.objects[id%maxObjects]
+	if o == nil {
+		return
+	}
+	log.Printf("Setting object %d elasticity to %f", id, e)
+	o.body.EachShape(func(s *cp.Shape) {
+		s.SetElasticity(e)
+	})
+	o.elasticity = e
+}
+
 func (p *PhysicsEngine) SetObjectMass(id int, mass int) {
 	p.Lock()
 	defer p.Unlock()
@@ -440,20 +478,30 @@ func (p *PhysicsEngine) SetObjectVelocity(id int, velX, velY float64) {
 }
 
 func (p *PhysicsEngine) reportDeltas() {
-	for idx, b := range p.objects {
+	var tmp = []*PhysicsObject{}
+	for _, b := range p.objects {
+		if b == nil {
+			continue
+		}
+		tmp = append(tmp, b)
+	}
+	sort.SliceStable(tmp, func(i, j int) bool {
+		return tmp[i].body.GetType() < tmp[j].body.GetType()
+	})
+	for _, b := range tmp {
 		if b == nil {
 			continue
 		}
 		var pos = b.body.Position()
 		var cx, cy = int(pos.X), int(pos.Y)
 		// log.Printf("Body at %d, %d", cx, cy)
-		if cx != b.lastPubX || cy != b.lastPubY {
-			//p.screen.WithDeltasDo(func(lrb *LoResBuffer) {
-			b.undraw(p.screen, 0)
-			p.screen.Plot(cx, cy, byte(b.color))
-			b.draw(p.screen, b.color)
-			//})
-			log.Printf("Body %d: moved to %d, %d", idx, cx, cy)
-		}
+		// if cx != b.lastPubX || cy != b.lastPubY {
+		//p.screen.WithDeltasDo(func(lrb *LoResBuffer) {
+		b.undraw(p.screen, 0)
+		p.screen.Plot(cx, cy, byte(b.color))
+		b.draw(p.screen, b.color)
+		//})
+		// log.Printf("Body %d: moved to %d, %d", idx, cx, cy)
+		// }
 	}
 }

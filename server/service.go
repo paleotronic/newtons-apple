@@ -167,6 +167,44 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 	log.Printf("handleMessage: received message '%s' (%d bytes)", msg.Type, len(msg.Body))
 
 	switch msg.Type {
+	case proto.MsgDefineGlobalForce:
+		params, _, err := s.deserialize(
+			msg.Body,
+			[]proto.Argument{
+				{Name: "force", Type: proto.ArgTypeByte},
+				{Name: "heading", Type: proto.ArgTypeWord},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		f := float64(params["force"].(byte))
+		h := float64(params["heading"].(int))
+		s.pe.SetForce(f, h)
+		return &proto.ProtocolMessage{
+			Type: proto.MsgOk,
+			Body: []byte{0x01},
+		}, nil
+	case proto.MsgSetVelocityHeading:
+		params, _, err := s.deserialize(
+			msg.Body,
+			[]proto.Argument{
+				{Name: "objectId", Type: proto.ArgTypeByte},
+				{Name: "velocity", Type: proto.ArgTypeByte},
+				{Name: "heading", Type: proto.ArgTypeWord},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		id := params["objectId"].(int)
+		v := float64(params["velocity"].(byte))
+		h := float64(params["heading"].(int))
+		s.pe.SetObjectVelocityHeading(id, v, h)
+		return &proto.ProtocolMessage{
+			Type: proto.MsgOk,
+			Body: []byte{0x01},
+		}, nil
 	case proto.MsgHello:
 		params, _, err := s.deserialize(
 			msg.Body,
@@ -354,6 +392,25 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 		x := int(params["x"].(byte))
 		y := int(params["y"].(byte))
 		s.pe.SetObjectPos(int(id), x, y)
+		return &proto.ProtocolMessage{
+			Type: proto.MsgOk,
+			Body: []byte{1},
+		}, nil
+	case proto.MsgSetObjectElasticity:
+		params, _, err := s.deserialize(
+			msg.Body,
+			[]proto.Argument{
+				{Name: "objectId", Type: proto.ArgTypeByte},
+				{Name: "elasticity", Type: proto.ArgTypeByte},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("Arguments: %+v", params)
+		id := params["objectId"].(byte)
+		e := float64(params["elasticity"].(byte)) / 100
+		s.pe.SetObjectElasticity(int(id), e)
 		return &proto.ProtocolMessage{
 			Type: proto.MsgOk,
 			Body: []byte{1},

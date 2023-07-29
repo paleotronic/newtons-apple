@@ -27,6 +27,7 @@ const (
 	MsgGetColor                MessageType = 0x15
 	MsgGetOOB                  MessageType = 0x16
 	MsgGetCollision            MessageType = 0x17
+	MsgSetVelocityHeading      MessageType = 0x18
 	//
 	MsgGreeting             MessageType = 0x7f
 	MsgClearMem             MessageType = 0x80
@@ -88,6 +89,8 @@ func (t MessageType) String() string {
 		return "get-object-oob-state"
 	case MsgGetCollision:
 		return "get-collision-state"
+	case MsgSetVelocityHeading:
+		return "set-velocity-heading"
 	case MsgGreeting:
 		return "greeting"
 	case MsgClearMem:

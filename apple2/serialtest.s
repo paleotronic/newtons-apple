@@ -37,6 +37,9 @@ CMD_GETOOB  = 9
 CMD_SETRECT = 10
 CMD_BLKRECT = 11
 CMD_GETCOLL = 12
+CMD_SETVELH = 13
+CMD_SETFORCE = 14
+CMD_SETELAST = 15
 
 ENTRYPOINT
         ; this is where user CALL()'s come in... 
@@ -74,6 +77,12 @@ ENTRYPOINT
         BEQ JP_BLKRECT
         CMP #CMD_GETCOLL
         BEQ JP_GETCOLL
+        CMP #CMD_SETVELH
+        BEQ JP_SETVELH
+        CMP #CMD_SETFORCE
+        BEQ JP_SETFORCE
+        CMP #CMD_SETELAST
+        BEQ JP_SETELAST
         RTS
 
 JP_INIT 
@@ -108,6 +117,12 @@ JP_BLKRECT
         JMP P_BLKRECT
 JP_GETCOLL
         JMP P_GETCOLL
+JP_SETVELH
+        JMP P_SETVELH
+JP_SETFORCE
+        JMP P_SETFORCE
+JP_SETELAST
+        JMP P_SETELAST
 
 P_INIT
         JSR INIT
@@ -241,6 +256,40 @@ P_SETVEL
         STA MLICMD
         RTS     
 
+P_SETVELH
+        LDA MLIARGS
+        STA VELOCITYH0 ; object number
+        LDA MLIARGS+1
+        STA VELOCITYH1 ; vel  
+        LDA MLIARGS+2
+        STA VELOCITYH2 ; heading lo
+        LDA MLIARGS+3
+        STA VELOCITYH3 ; heading hi
+        LDX #VELOCITYH_L
+        LDA #<VELOCITYH
+        LDY #>VELOCITYH
+        JSR SENDCOMMAND
+        JSR RECVCOMMAND
+        LDA COMMANDBUFFER+3
+        STA MLICMD
+        RTS 
+
+P_SETFORCE
+        LDA MLIARGS
+        STA FORCE0 ; strength
+        LDA MLIARGS+1
+        STA FORCE1 ; heading lo
+        LDA MLIARGS+2
+        STA FORCE2 ; heading hi
+        LDX #FORCE_L
+        LDA #<FORCE
+        LDY #>FORCE
+        JSR SENDCOMMAND
+        JSR RECVCOMMAND
+        LDA COMMANDBUFFER+3
+        STA MLICMD
+        RTS 
+
 P_SETRECT
         LDA MLIARGS
         STA SETRECT0 ; object number
@@ -289,6 +338,20 @@ P_SETCOL
         LDX #COLOR_L
         LDA #<COLOR
         LDY #>COLOR
+        JSR SENDCOMMAND
+        JSR RECVCOMMAND
+        LDA COMMANDBUFFER+3
+        STA MLICMD
+        RTS   
+
+P_SETELAST
+        LDA MLIARGS
+        STA ELASTIC0 ; object number
+        LDA MLIARGS+1
+        STA ELASTIC1 ; color
+        LDX #ELASTIC_L
+        LDA #<ELASTIC
+        LDY #>ELASTIC
         JSR SENDCOMMAND
         JSR RECVCOMMAND
         LDA COMMANDBUFFER+3
@@ -393,6 +456,13 @@ CREATEOBJ
            DB $01,$00 ; size
 CREATEOBJ0 DB $00 ; object num
 
+FORCE_L = 6
+FORCE
+           DB $09 ; command byte
+           DB $03,$00 ; size
+FORCE0  DB $00 ; force
+FORCE1  DB $00 ; heading lo
+FORCE2  DB $00 ; heading hi
 
 VELOCITY_L = 6
 VELOCITY
@@ -402,12 +472,28 @@ VELOCITY0  DB $00 ; object num
 VELOCITY1  DB $00 ; vel x  int8
 VELOCITY2  DB $00 ; vel y  int8
 
+VELOCITYH_L = 7
+VELOCITYH
+           DB $18 ; command byte
+           DB $04,$00 ; size
+VELOCITYH0  DB $00 ; object num
+VELOCITYH1  DB $00 ; vel (0-255)
+VELOCITYH2  DB $00 ; heading lo
+VELOCITYH3  DB $00 ; heading hi
+
 COLOR_L = 5
 COLOR
            DB $0f ; command byte
            DB $02,$00 ; size
 COLOR0  DB $00 ; object num
 COLOR1  DB $00 ; col (0-15)
+
+ELASTIC_L = 5
+ELASTIC
+           DB $08 ; command byte
+           DB $02,$00 ; size
+ELASTIC0   DB $00 ; object num
+ELASTIC1   DB $00 ; elasticity (0-100)
 
 MASS_L = 5
 MASS
