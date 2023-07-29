@@ -12,6 +12,14 @@ import (
 	"github.com/reiver/go-telnet"
 )
 
+type Writer interface {
+	Write(b []byte) (int, error)
+}
+
+type Reader interface {
+	Read(b []byte) (int, error)
+}
+
 var PhysicsService = newPhysicsService()
 
 func (s *internalPhysicsService) reportData(deltas [][2]int) []*proto.ProtocolMessage {
@@ -70,10 +78,10 @@ type internalPhysicsService struct {
 	// stuff
 	buffer []byte
 	pe     *PhysicsEngine
-	w      telnet.Writer
+	w      Writer
 }
 
-func (s *internalPhysicsService) sendWelcome(w telnet.Writer) {
+func (s *internalPhysicsService) sendWelcome(w Writer) {
 	s.w = w
 	log.Printf("Set writer to %+v", s.w)
 	s.sendMessage(
@@ -126,7 +134,7 @@ func (s internalPhysicsService) ServeTELNET(ctx telnet.Context, w telnet.Writer,
 	}
 }
 
-func (s *internalPhysicsService) sendMessage(w telnet.Writer, resp *proto.ProtocolMessage) {
+func (s *internalPhysicsService) sendMessage(w Writer, resp *proto.ProtocolMessage) {
 	oi.LongWrite(w, []byte{byte(resp.Type)})
 	oi.LongWrite(w, []byte{
 		byte(len(resp.Body) & 0xff),
@@ -136,7 +144,7 @@ func (s *internalPhysicsService) sendMessage(w telnet.Writer, resp *proto.Protoc
 	log.Printf("Sending message: Type = $%x, Payload Length = %d bytes [%+v]", byte(resp.Type), len(resp.Body), resp.Body)
 }
 
-func (s *internalPhysicsService) checkForMessage(w telnet.Writer) {
+func (s *internalPhysicsService) checkForMessage(w Writer) {
 	if len(s.buffer) >= 3 {
 		t := proto.MessageType(s.buffer[0])
 		size := int(s.buffer[1]) + int(s.buffer[2])*256
@@ -155,7 +163,7 @@ func (s *internalPhysicsService) checkForMessage(w telnet.Writer) {
 	}
 }
 
-func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w telnet.Writer) (*proto.ProtocolMessage, error) {
+func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Writer) (*proto.ProtocolMessage, error) {
 	log.Printf("handleMessage: received message '%s' (%d bytes)", msg.Type, len(msg.Body))
 
 	switch msg.Type {

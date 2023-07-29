@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"sync"
 	"time"
 
 	"github.com/go-gl/mathgl/mgl64"
@@ -86,6 +87,7 @@ func (po *PhysicsObject) draw(screen *LoResBuffer, color int) {
 }
 
 type PhysicsEngine struct {
+	sync.Mutex
 	minBounds cp.Vector
 	maxBounds cp.Vector
 	objects   [maxObjects]*PhysicsObject
@@ -207,6 +209,8 @@ func (p *PhysicsEngine) addRect(slot int, width, height float64, mass float64, p
 }
 
 func (p *PhysicsEngine) RemoveObject(id int) {
+	p.Lock()
+	defer p.Unlock()
 	o := p.objects[id%maxObjects]
 	if o == nil {
 		return
@@ -257,19 +261,29 @@ func (p *PhysicsEngine) Start() {
 	if p.running {
 		return
 	}
+	p.Lock()
+	defer p.Unlock()
 	go func(p *PhysicsEngine) {
 		p.running = true
 		for p.running {
 			time.Sleep(p.interval)
 			var dt = float64(p.interval) / float64(time.Second)
 			// log.Printf("Stepping with dt of %f", dt)
-			p.space.Step(dt)
-			p.reportDeltas()
+			p.Step(dt)
 		}
 	}(p)
 }
 
+func (p *PhysicsEngine) Step(dt float64) {
+	p.Lock()
+	defer p.Unlock()
+	p.space.Step(dt)
+	p.reportDeltas()
+}
+
 func (p *PhysicsEngine) Stop() {
+	p.Lock()
+	defer p.Unlock()
 	if !p.running {
 		return
 	}
@@ -290,6 +304,8 @@ func (p *PhysicsEngine) Stop() {
 }
 
 func (p *PhysicsEngine) GetObjectColor(id int) int {
+	p.Lock()
+	defer p.Unlock()
 	o := p.objects[id%maxObjects]
 	if o == nil {
 		return 0
@@ -299,6 +315,8 @@ func (p *PhysicsEngine) GetObjectColor(id int) int {
 }
 
 func (p *PhysicsEngine) GetObjectPos(id int) (int, int) {
+	p.Lock()
+	defer p.Unlock()
 	o := p.objects[id%maxObjects]
 	if o == nil {
 		return 0, 0
@@ -308,6 +326,8 @@ func (p *PhysicsEngine) GetObjectPos(id int) (int, int) {
 }
 
 func (p *PhysicsEngine) GetObjectOOB(id int) int {
+	p.Lock()
+	defer p.Unlock()
 	o := p.objects[id%maxObjects]
 	if o == nil {
 		return 1
@@ -320,6 +340,8 @@ func (p *PhysicsEngine) GetObjectOOB(id int) int {
 }
 
 func (p *PhysicsEngine) SetObjectRect(id int, w, h int) {
+	p.Lock()
+	defer p.Unlock()
 	w = w % 40
 	h = h % 48
 	o := p.objects[id%maxObjects]
@@ -342,6 +364,8 @@ func (p *PhysicsEngine) SetObjectRect(id int, w, h int) {
 }
 
 func (p *PhysicsEngine) SetObjectPos(id int, x, y int) {
+	p.Lock()
+	defer p.Unlock()
 	x = x % 40
 	y = y % 48
 	o := p.objects[id%maxObjects]
@@ -353,6 +377,8 @@ func (p *PhysicsEngine) SetObjectPos(id int, x, y int) {
 }
 
 func (p *PhysicsEngine) SetObjectType(id int, kind int) {
+	p.Lock()
+	defer p.Unlock()
 	o := p.objects[id%maxObjects]
 	if o == nil {
 		return
@@ -368,6 +394,8 @@ func (p *PhysicsEngine) SetObjectType(id int, kind int) {
 }
 
 func (p *PhysicsEngine) SetObjectMass(id int, mass int) {
+	p.Lock()
+	defer p.Unlock()
 	o := p.objects[id%maxObjects]
 	if o == nil {
 		return
@@ -382,6 +410,8 @@ func (p *PhysicsEngine) SetObjectMass(id int, mass int) {
 }
 
 func (p *PhysicsEngine) SetObjectColor(id int, color int) {
+	p.Lock()
+	defer p.Unlock()
 	o := p.objects[id%maxObjects]
 	if o == nil {
 		return
@@ -395,6 +425,8 @@ func (p *PhysicsEngine) SetObjectColor(id int, color int) {
 }
 
 func (p *PhysicsEngine) SetObjectVelocity(id int, velX, velY float64) {
+	p.Lock()
+	defer p.Unlock()
 	o := p.objects[id%maxObjects]
 	if o == nil {
 		return

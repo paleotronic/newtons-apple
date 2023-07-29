@@ -13,7 +13,7 @@
  120 OB=1 : GOSUB 1500 : REM create obj 1
  130 OB=1 : CO=7 : GOSUB 1200 : REM set color to 4
  140 OB=1 : TY=0 : GOSUB 1300 : REM set type to elastic
- 150 OB=1 : VX=5 : VY=4 : GOSUB 1400 : REM set velocity (px/sec)
+ 150 OB=1 : VX=2+INT(RND(1)*3) : VY=2+INT(RND(1)*3) : GOSUB 1400 : REM set velocity (px/sec)
  160 OB=1 : MA=5 : GOSUB 1000 : REM set mass to 15 KG
  170 OB=1 : PX=6 : PY=20 : GOSUB 1600 : REM set object position
  
