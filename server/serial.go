@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -12,8 +13,19 @@ type SerialService interface {
 	ServeSerial(ctx context.Context, r Reader, w Writer)
 }
 
-func ListenAndServeSerial(ctx context.Context, s SerialService, device string, baudRate int, dataBits int, stopBits int, parity string) error {
-	p := serial.NoParity
+func ListenAndServeSerial(ctx context.Context, s SerialService, device string, baudRate int, dataBits int, stopBits string, parity string) error {
+	var stop serial.StopBits
+	switch stopBits {
+	case "1":
+		stop = serial.OneStopBit
+	case "1.5":
+		stop = serial.OnePointFiveStopBits
+	case "2":
+		stop = serial.TwoStopBits
+	default:
+		return fmt.Errorf("Invalid stop bits: '%s'", stopBits)
+	}
+	var p serial.Parity
 	switch parity {
 	case "N":
 		p = serial.NoParity
@@ -25,15 +37,25 @@ func ListenAndServeSerial(ctx context.Context, s SerialService, device string, b
 		p = serial.MarkParity
 	case "S":
 		p = serial.SpaceParity
+	default:
+		return fmt.Errorf("Invalid parity mode: '%s'", parity)
 	}
-	port, err := serial.Open(device, &serial.Mode{
+	port, err := serial.Open(device, &serial.Mode{})
+	if err != nil {
+		return err
+	}
+	defer port.Close()
+
+	newMode := &serial.Mode{
 		BaudRate: baudRate,
 		DataBits: dataBits,
 		Parity:   p,
-		StopBits: serial.StopBits(stopBits),
-	})
+		StopBits: stop,
+	}
+
+	err = port.SetMode(newMode)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error configuring port %s: %+v: %v", device, *newMode, err)
 	}
 
 	s.ServeSerial(ctx, port, port)
