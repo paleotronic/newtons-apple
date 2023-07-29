@@ -40,6 +40,7 @@ CMD_GETCOLL = 12
 CMD_SETVELH = 13
 CMD_SETFORCE = 14
 CMD_SETELAST = 15
+CMD_ALLOOB = 16
 
 ENTRYPOINT
         ; this is where user CALL()'s come in... 
@@ -83,6 +84,8 @@ ENTRYPOINT
         BEQ JP_SETFORCE
         CMP #CMD_SETELAST
         BEQ JP_SETELAST
+        CMP #CMD_ALLOOB
+        BEQ JP_ALLOOB
         RTS
 
 JP_INIT 
@@ -123,6 +126,8 @@ JP_SETFORCE
         JMP P_SETFORCE
 JP_SETELAST
         JMP P_SETELAST
+JP_ALLOOB
+        JMP P_ALLOOB
 
 P_INIT
         JSR INIT
@@ -151,6 +156,18 @@ P_STOP
         JSR RECVCOMMAND
         LDA COMMANDBUFFER+3
         STA MLICMD
+        RTS 
+
+P_ALLOOB
+        LDX #ALLOOB_L
+        LDA #<ALLOOB
+        LDY #>ALLOOB 
+        JSR SENDCOMMAND
+        JSR RECVCOMMAND
+        LDA COMMANDBUFFER+3
+        STA MLICMD
+        LDA COMMANDBUFFER+4
+        STA MLICMD+1
         RTS 
 
 P_REQDIFF
@@ -525,6 +542,11 @@ START
 STOP_L = 3
 STOP
            DB $13
+           DB $00,$00
+
+ALLOOB_L = 3
+ALLOOB
+           DB $19
            DB $00,$00
 
 REQDIFF_L = 3

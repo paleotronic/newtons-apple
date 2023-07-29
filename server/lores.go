@@ -58,7 +58,7 @@ func (lrb *LoResBuffer) plot(x, y int, c byte) {
 	if x < 0 || x >= 40 {
 		return
 	}
-	if y < 0 || y >= 48 {
+	if y < 0 || y >= 40 {
 		return
 	}
 	x = x % 40

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"sort"
 	"sync"
 	"time"
@@ -286,11 +287,16 @@ func (p *PhysicsEngine) Start() {
 	}(p)
 }
 
+func (p *PhysicsEngine) GetDeltasWithBase(base int) [][2]int {
+	p.reportDeltas()
+	return p.screen.GetDeltasWithBase(base)
+}
+
 func (p *PhysicsEngine) Step(dt float64) {
 	p.Lock()
 	defer p.Unlock()
 	p.space.Step(dt)
-	p.reportDeltas()
+	//p.reportDeltas()
 }
 
 func (p *PhysicsEngine) Stop() {
@@ -337,6 +343,25 @@ func (p *PhysicsEngine) GetObjectPos(id int) (int, int) {
 	return int(pos.X), int(pos.Y)
 }
 
+func (p *PhysicsEngine) GetAnyOOB() (int, bool) {
+	p.Lock()
+	defer p.Unlock()
+	for idx, o := range p.objects {
+		if o == nil {
+			return idx, true
+		}
+		pos := o.body.Position()
+		// log.Printf("OOB check: body %d pos = %+v", idx, pos)
+		if math.IsNaN(pos.X) || math.IsNaN(pos.Y) {
+			return idx, true
+		}
+		if pos.X < p.minBounds.X || pos.X > p.maxBounds.X || pos.Y < p.minBounds.Y || pos.Y > p.maxBounds.Y {
+			return idx, true
+		}
+	}
+	return 0, false
+}
+
 func (p *PhysicsEngine) GetObjectOOB(id int) int {
 	p.Lock()
 	defer p.Unlock()
@@ -345,6 +370,9 @@ func (p *PhysicsEngine) GetObjectOOB(id int) int {
 		return 1
 	}
 	pos := o.body.Position()
+	if math.IsNaN(pos.X) || math.IsNaN(pos.Y) {
+		return 1
+	}
 	if pos.X < p.minBounds.X || pos.X > p.maxBounds.X || pos.Y < p.minBounds.Y || pos.Y > p.maxBounds.Y {
 		return 1
 	}
@@ -492,13 +520,13 @@ func (p *PhysicsEngine) reportDeltas() {
 		if b == nil {
 			continue
 		}
-		var pos = b.body.Position()
-		var cx, cy = int(pos.X), int(pos.Y)
+		// var pos = b.body.Position()
+		// var cx, cy = int(pos.X), int(pos.Y)
 		// log.Printf("Body at %d, %d", cx, cy)
 		// if cx != b.lastPubX || cy != b.lastPubY {
 		//p.screen.WithDeltasDo(func(lrb *LoResBuffer) {
 		b.undraw(p.screen, 0)
-		p.screen.Plot(cx, cy, byte(b.color))
+		// p.screen.Plot(cx, cy, byte(b.color))
 		b.draw(p.screen, b.color)
 		//})
 		// log.Printf("Body %d: moved to %d, %d", idx, cx, cy)

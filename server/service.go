@@ -26,7 +26,7 @@ func (s *internalPhysicsService) reportData(deltas [][2]int) []*proto.ProtocolMe
 	var allData = []byte{
 		byte(len(deltas)),
 	}
-	const maxPayload = 128
+	const maxPayload = 192
 	payloads := []*proto.ProtocolMessage{}
 	var count = 0
 	for _, d := range deltas {
@@ -68,7 +68,7 @@ func (s *internalPhysicsService) reportData(deltas [][2]int) []*proto.ProtocolMe
 func newPhysicsService() *internalPhysicsService {
 	ips := &internalPhysicsService{
 		buffer: nil,
-		pe:     NewPhysicsEngine(0, 0, 40, 48, 20*time.Millisecond),
+		pe:     NewPhysicsEngine(0, 0, 39, 39, 20*time.Millisecond),
 	}
 	// ips.pe.space.SetGravity(cp.Vector{0, 2})
 	return ips
@@ -167,6 +167,19 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 	log.Printf("handleMessage: received message '%s' (%d bytes)", msg.Type, len(msg.Body))
 
 	switch msg.Type {
+	case proto.MsgGetAnyOOB:
+		id, found := s.pe.GetAnyOOB()
+		if found {
+			return &proto.ProtocolMessage{
+				Type: proto.MsgGetAnyOOBResponse,
+				Body: []byte{0x01, byte(id)},
+			}, nil
+		} else {
+			return &proto.ProtocolMessage{
+				Type: proto.MsgGetAnyOOBResponse,
+				Body: []byte{0x00, 0x00},
+			}, nil
+		}
 	case proto.MsgDefineGlobalForce:
 		params, _, err := s.deserialize(
 			msg.Body,
@@ -223,7 +236,7 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 			Body: append([]byte("HELLO\r")),
 		}, nil
 	case proto.MsgRequestDeltas:
-		deltas := s.pe.screen.GetDeltasWithBase(1024)
+		deltas := s.pe.GetDeltasWithBase(1024)
 		if len(deltas) > 0 {
 			payloads := s.reportData(deltas)
 			for _, m := range payloads[:len(payloads)-1] {

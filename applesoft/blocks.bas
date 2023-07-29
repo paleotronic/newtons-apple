@@ -1,24 +1,30 @@
- 5 GR 
+ 5 GR : BC = 0 : FC = 0 : HOME : ? "BOXES: ";BC 
  10 BW=2 : BH=4 : REM block sizes
  20 PHYSICS=8192 : GOSUB 5000 : GOSUB 1100
  30 OB=0:PX=5:PY=37:WW=30:HH=2:CO=3:GOSUB 2400: REM floor 
  40 GOSUB 1700 : REM start physics
  50 FO=1: HE=0: GOSUB 2700: REM set force of 50 units, 180 deg (downwards)
  60 BX=1 : REM next box
- 70 FOR J=1 TO 6: GOSUB 500 : NEXT J : REM spawn next box
+ 70 GOSUB 500 : REM spawn next box
  80 FOR Y=1 TO 50 : NEXT Y
  90 GOSUB 1900 : REM update video
- 100 GOTO 80
+ 100 FC = FC + 1 : IF FC > 10 THEN FC = 0 : GOSUB 600
+ 110 GOTO 80
 
  500 REM create box
  510 OB=BX : GOSUB 1500 : REM create obj 'bx'
- 520 OB=BX : EL=20 : GOSUB 2800: REM set elasticity to 20 percent
- 530 OB=BX : CO=INT(RND(1)*6)+1 : GOSUB 1200 : REM set color to random
+ 520 OB=BX : EL=40 : GOSUB 2800: REM set elasticity to 20 percent
+ 530 OB=BX : CO=INT(RND(1)*10)+5 : GOSUB 1200 : REM set color to random
  550 OB=BX : VX=0 : VY=0 : GOSUB 1400 : REM set velocity (px/sec)
- 560 OB=BX : PX=5+INT(RND(1)*20)+1 : PY=0 : GOSUB 1600 : REM set object position
+ 560 OB=BX : PX=5+INT(RND(1)*20)+1 : PY=1 : GOSUB 1600 : REM set object position
  570 OB=BX : WW=BW : HH=BH : GOSUB 2300 : REM set object rect
- 580 BX = BX + 1 : IF BX > 15 THEN BX = 1
+ 580 BC = BC + 1 : HOME : ? "BOXES: ";BC 
  590 RETURN
+
+ 600 REM check for oob
+ 610 GOSUB 2900 : IF OO=0 THEN RETURN
+ 620 IF OB >= 1 THEN BX = OB : GOSUB 500 
+ 630 RETURN
 
  1000 REM set-object-mass OB=objectid, MA = mass
  1010 POKE 768,4: POKE 769,OB: POKE 770,MA: CALL PHYSICS
@@ -103,7 +109,12 @@
  2800 REM set-object-elasticity OB=object-id, EL=elasticity
  2810 POKE 768,15: POKE 769,OB: POKE 770, EL: CALL PHYSICS
  2820 CO = PEEK(768) 
- 2830 RETURNLIST
+ 2830 RETURN
+
+ 2900 REM get-any-oob -> OO=1 (yes) 0 (no) OB=objid
+ 2910 POKE 768,16: CALL PHYSICS
+ 2920 OO = PEEK(768) : OB = PEEK(769)
+ 2930 RETURN
  
  5000 REM load physics driver
  5010 D$=CHR$(4)
