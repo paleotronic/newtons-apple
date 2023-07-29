@@ -54,10 +54,10 @@ func (po *PhysicsObject) undraw(screen *LoResBuffer, color int) {
 		})
 	case stRect:
 		screen.WithDeltasDo(func(screen *LoResBuffer) {
-			x1 := po.lastPubX - int(po.width)/2
-			x2 := po.lastPubX + int(po.width)/2
-			y1 := po.lastPubY - int(po.height)/2
-			y2 := po.lastPubY + int(po.height)/2
+			x1 := po.lastPubX - int(po.width/2)
+			x2 := po.lastPubX + int(po.width/2)
+			y1 := po.lastPubY - int(po.height/2)
+			y2 := po.lastPubY + int(po.height/2)
 			screen.DrawBox(x1, y1, x2, y2, byte(color))
 		})
 	}
@@ -78,10 +78,10 @@ func (po *PhysicsObject) draw(screen *LoResBuffer, color int) {
 		})
 	case stRect:
 		screen.WithDeltasDo(func(screen *LoResBuffer) {
-			x1 := cx - int(po.width)/2
-			x2 := cx + int(po.width)/2
-			y1 := cy - int(po.height)/2
-			y2 := cy + int(po.height)/2
+			x1 := cx - int(po.width/2)
+			x2 := cx + int(po.width/2)
+			y1 := cy - int(po.height/2)
+			y2 := cy + int(po.height/2)
 			screen.DrawBox(x1, y1, x2, y2, byte(color))
 		})
 	}
@@ -388,6 +388,20 @@ func (p *PhysicsEngine) SetObjectVelocityHeading(id int, v float64, heading floa
 		return
 	}
 	fv := headingToVector(heading).Mult(v)
+	o.body.SetVelocity(fv.X, fv.Y)
+}
+
+func (p *PhysicsEngine) AddObjectVelocityHeading(id int, v float64, heading float64) {
+	heading = 360 - heading
+	p.Lock()
+	defer p.Unlock()
+	o := p.objects[id%maxObjects]
+	if o == nil {
+		return
+	}
+	fv := headingToVector(heading).Mult(v)
+	ov := o.body.Velocity()
+	fv = fv.Add(ov)
 	o.body.SetVelocity(fv.X, fv.Y)
 }
 
