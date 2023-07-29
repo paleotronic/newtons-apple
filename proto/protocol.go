@@ -29,6 +29,7 @@ const (
 	MsgGetCollision            MessageType = 0x17
 	MsgSetVelocityHeading      MessageType = 0x18
 	MsgGetAnyOOB               MessageType = 0x19
+	MsgAddVelocityHeading      MessageType = 0x20
 	//
 	MsgGreeting             MessageType = 0x7f
 	MsgClearMem             MessageType = 0x80
@@ -95,6 +96,8 @@ func (t MessageType) String() string {
 		return "get-collision-state"
 	case MsgSetVelocityHeading:
 		return "set-velocity-heading"
+	case MsgAddVelocityHeading:
+		return "add-velocity-heading"
 	case MsgGreeting:
 		return "greeting"
 	case MsgClearMem:

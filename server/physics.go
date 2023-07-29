@@ -29,8 +29,9 @@ type PhysicsObject struct {
 	width        float64
 	height       float64
 	kind         ShapeType
-	lastPubX     int
-	lastPubY     int
+	lastPubX     float64
+	lastPubY     float64
+	lastPubH     float64
 	color        int
 	mass         int
 	bodyType     int
@@ -50,22 +51,27 @@ func (po *PhysicsObject) undraw(screen *LoResBuffer, color int) {
 		})
 	case stCircle:
 		screen.WithDeltasDo(func(screen *LoResBuffer) {
-			screen.DrawCircle(po.lastPubX, po.lastPubY, int(po.radius/2), byte(color))
+			screen.DrawCircle(po.lastPubX, po.lastPubY, po.radius, byte(color))
 		})
 	case stRect:
 		screen.WithDeltasDo(func(screen *LoResBuffer) {
-			x1 := po.lastPubX - int(po.width/2)
-			x2 := po.lastPubX + int(po.width/2)
-			y1 := po.lastPubY - int(po.height/2)
-			y2 := po.lastPubY + int(po.height/2)
+			x1 := po.lastPubX - po.width/2
+			x2 := po.lastPubX + po.width/2
+			y1 := po.lastPubY - po.height/2
+			y2 := po.lastPubY + po.height/2
 			screen.DrawBox(x1, y1, x2, y2, byte(color))
 		})
 	}
 }
 
+func radToDeg(r float64) float64 {
+	return 360 - r*180/math.Pi
+}
+
 func (po *PhysicsObject) draw(screen *LoResBuffer, color int) {
 	var pos = po.body.Position()
-	var cx, cy = int(pos.X), int(pos.Y)
+	var heading = radToDeg(po.body.Angle())
+	var cx, cy = pos.X, pos.Y
 	// use current pos
 	switch po.kind {
 	case stPoint:
@@ -74,19 +80,20 @@ func (po *PhysicsObject) draw(screen *LoResBuffer, color int) {
 		})
 	case stCircle:
 		screen.WithDeltasDo(func(screen *LoResBuffer) {
-			screen.DrawCircle(cx, cy, int(po.radius/2), byte(color))
+			screen.DrawCircle(cx, cy, po.radius/2, byte(color))
 		})
 	case stRect:
 		screen.WithDeltasDo(func(screen *LoResBuffer) {
-			x1 := cx - int(po.width/2)
-			x2 := cx + int(po.width/2)
-			y1 := cy - int(po.height/2)
-			y2 := cy + int(po.height/2)
+			x1 := cx - po.width/2
+			x2 := cx + po.width/2
+			y1 := cy - po.height/2
+			y2 := cy + po.height/2
 			screen.DrawBox(x1, y1, x2, y2, byte(color))
 		})
 	}
 	po.lastPubX = cx
 	po.lastPubY = cy
+	po.lastPubH = heading
 }
 
 type PhysicsEngine struct {
@@ -539,6 +546,10 @@ func (p *PhysicsEngine) reportDeltas() {
 		// log.Printf("Body at %d, %d", cx, cy)
 		// if cx != b.lastPubX || cy != b.lastPubY {
 		//p.screen.WithDeltasDo(func(lrb *LoResBuffer) {
+		a := radToDeg(b.body.Angle())
+		if b.kind == stRect && b.lastPubH != a {
+			log.Printf("Rotation to %f deg!", a)
+		}
 		b.undraw(p.screen, 0)
 		// p.screen.Plot(cx, cy, byte(b.color))
 		b.draw(p.screen, b.color)

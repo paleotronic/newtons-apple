@@ -218,6 +218,26 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 			Type: proto.MsgOk,
 			Body: []byte{0x01},
 		}, nil
+	case proto.MsgAddVelocityHeading:
+		params, _, err := s.deserialize(
+			msg.Body,
+			[]proto.Argument{
+				{Name: "objectId", Type: proto.ArgTypeByte},
+				{Name: "velocity", Type: proto.ArgTypeByte},
+				{Name: "heading", Type: proto.ArgTypeWord},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		id := params["objectId"].(int)
+		v := float64(params["velocity"].(byte))
+		h := float64(params["heading"].(int))
+		s.pe.AddObjectVelocityHeading(id, v, h)
+		return &proto.ProtocolMessage{
+			Type: proto.MsgOk,
+			Body: []byte{0x01},
+		}, nil
 	case proto.MsgHello:
 		params, _, err := s.deserialize(
 			msg.Body,

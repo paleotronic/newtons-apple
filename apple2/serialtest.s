@@ -41,6 +41,7 @@ CMD_SETVELH = 13
 CMD_SETFORCE = 14
 CMD_SETELAST = 15
 CMD_ALLOOB = 16
+CMD_ADDVELH = 17
 
 ENTRYPOINT
         ; this is where user CALL()'s come in... 
@@ -86,6 +87,8 @@ ENTRYPOINT
         BEQ JP_SETELAST
         CMP #CMD_ALLOOB
         BEQ JP_ALLOOB
+        CMP #CMD_ADDVELH
+        BEQ JP_ADDVELH
         RTS
 
 JP_INIT 
@@ -128,6 +131,8 @@ JP_SETELAST
         JMP P_SETELAST
 JP_ALLOOB
         JMP P_ALLOOB
+JP_ADDVELH
+        JMP P_ADDVELH
 
 P_INIT
         JSR INIT
@@ -285,6 +290,24 @@ P_SETVELH
         LDX #VELOCITYH_L
         LDA #<VELOCITYH
         LDY #>VELOCITYH
+        JSR SENDCOMMAND
+        JSR RECVCOMMAND
+        LDA COMMANDBUFFER+3
+        STA MLICMD
+        RTS 
+
+P_ADDVELH
+        LDA MLIARGS
+        STA ADDVELH0 ; object number
+        LDA MLIARGS+1
+        STA ADDVELH1 ; vel  
+        LDA MLIARGS+2
+        STA ADDVELH2 ; heading lo
+        LDA MLIARGS+3
+        STA ADDVELH3 ; heading hi
+        LDX #ADDVELH_L
+        LDA #<ADDVELH
+        LDY #>ADDVELH
         JSR SENDCOMMAND
         JSR RECVCOMMAND
         LDA COMMANDBUFFER+3
@@ -497,6 +520,15 @@ VELOCITYH0  DB $00 ; object num
 VELOCITYH1  DB $00 ; vel (0-255)
 VELOCITYH2  DB $00 ; heading lo
 VELOCITYH3  DB $00 ; heading hi
+
+ADDVELH_L = 7
+ADDVELH
+           DB $20 ; command byte
+           DB $04,$00 ; size
+ADDVELH0  DB $00 ; object num
+ADDVELH1  DB $00 ; vel (0-255)
+ADDVELH2  DB $00 ; heading lo
+ADDVELH3  DB $00 ; heading hi
 
 COLOR_L = 5
 COLOR

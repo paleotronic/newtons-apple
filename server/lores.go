@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"sync"
 
 	"github.com/jakecoffman/cp"
@@ -75,23 +76,23 @@ func (lrb *LoResBuffer) plot(x, y int, c byte) {
 	lrb.Write(idx, b)
 }
 
-func (lrb *LoResBuffer) Plot(x, y int, c byte) {
+func (lrb *LoResBuffer) Plot(x, y float64, c byte) {
 	lrb.Lock()
 	defer lrb.Unlock()
-	lrb.plot(x, y, c)
+	lrb.plot(int(math.Round(x)), int(math.Round(y)), c)
 }
 
-func (lrb *LoResBuffer) DrawBox(x1, y1, x2, y2 int, c byte) {
+func (lrb *LoResBuffer) DrawBox(x1, y1, x2, y2 float64, c byte) {
 	lrb.Lock()
 	defer lrb.Unlock()
 	for y := y1; y <= y2; y++ {
 		for x := x1; x <= x2; x++ {
-			lrb.plot(x, y, c)
+			lrb.plot(int(math.Round(x)), int(math.Round(y)), c)
 		}
 	}
 }
 
-func (lrb *LoResBuffer) DrawCircle(cx, cy int, r int, c byte) {
+func (lrb *LoResBuffer) DrawCircle(cx, cy float64, r float64, c byte) {
 	lrb.Lock()
 	defer lrb.Unlock()
 	x1 := cx - r
@@ -104,7 +105,7 @@ func (lrb *LoResBuffer) DrawCircle(cx, cy int, r int, c byte) {
 		for x := x1; x <= x2; x++ {
 			p = cp.Vector{X: float64(x), Y: float64(y)}
 			if p.Sub(center).Length() <= float64(r) {
-				lrb.plot(x, y, c)
+				lrb.plot(int(math.Round(x)), int(math.Round(y)), c)
 			}
 		}
 	}
