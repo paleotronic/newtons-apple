@@ -26,7 +26,7 @@ make build
 ```
 Usage of ./physics-server:
   -baud-rate int
-        Baud rate (default 115200)
+        Baud rate (default 19200)
   -data-bits int
         Data bits (5,6,7 or 8). (default 8)
   -list-ports
