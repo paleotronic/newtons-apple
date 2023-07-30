@@ -45,7 +45,7 @@ Usage of ./physics-server:
         TCP Port to run service on. (default "5555")
 ```
 
-It will run on telnet by default, which allows bootstrapping it with emulators with telnet serial emulation. In `microM8`, you can run with the option `-modem-init "atx telnet localhost 5555"` to connect to the physics service. 
+It will run on telnet by default, which allows bootstrapping it with emulators with telnet serial emulation. 
 
 On some OSes, you may need to use `sudo` to get access to the serial hardware. 
 
