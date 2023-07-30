@@ -32,6 +32,8 @@ const (
 	MsgAddVelocityHeading      MessageType = 0x20
 	MsgSetHeading              MessageType = 0x21
 	MsgGetHeading              MessageType = 0x22
+	MsgSetSpin                 MessageType = 0x23
+	MsgRequestMoreData         MessageType = 0x40
 	//
 	MsgGreeting             MessageType = 0x7f
 	MsgClearMem             MessageType = 0x80
@@ -102,10 +104,14 @@ func (t MessageType) String() string {
 		return "set-object-heading"
 	case MsgGetHeading:
 		return "get-object-heading"
+	case MsgSetSpin:
+		return "set-object-spin"
 	case MsgGreeting:
 		return "greeting"
 	case MsgClearMem:
 		return "clear-memory"
+	case MsgRequestMoreData:
+		return "request-more-deltas"
 	default:
 		return fmt.Sprintf("unknown-message ($%.2x)", int(t))
 	}

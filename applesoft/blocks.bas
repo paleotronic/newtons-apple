@@ -1,4 +1,4 @@
- 5 GR : BC = 0 : FC = 0 : HOME : ? "BOXES: ";BC 
+  5 GR : BC = 0 : FC = 0 : HOME : ? "BOXES: ";BC 
  10 BW=4 : BH=4 : REM block sizes
  20 PHYSICS=8192 : GOSUB 5000 : GOSUB 1100
  30 OB=0:PX=5:PY=37:WW=30:HH=2:CO=3:GOSUB 2400: REM floor 
@@ -8,7 +8,6 @@
  70 GOSUB 500 : REM spawn next box
  80 FOR Y=1 TO 50 : NEXT Y
  90 GOSUB 1900 : REM update video
- 100 FC = FC + 1 : IF FC > 10 THEN FC = 0 : GOSUB 600
  110 GOTO 80
 
  500 REM create box
@@ -18,6 +17,7 @@
  550 OB=BX : VX=0 : VY=0 : GOSUB 1400 : REM set velocity (px/sec)
  560 OB=BX : PX=5+INT(RND(1)*20)+1 : PY=1 : GOSUB 1600 : REM set object position
  570 OB=BX : WW=BW : HH=BH : GOSUB 2300 : REM set object rect
+ 575 OB=BX : RT=1 : GOSUB 3300 : REM allow rotation
  580 BC = BC + 1 : HOME : ? "BOXES: ";BC 
  590 RETURN
 
@@ -118,11 +118,26 @@
 
  3000 REM add-velocity-heading OB=object-id VE=vel HE=heading (0-359)
  3005 HH=INT(HE/256) : LL=HE-HH*256
- 3010 POKE 768,13: POKE 769,OB: POKE770,VE: POKE771,LL: POKE772,HH: CALL PHYSICS
+ 3010 POKE 768,17: POKE 769,OB: POKE770,VE: POKE771,LL: POKE772,HH: CALL PHYSICS
  3020 RETURN
- 
+
+ 3100 REM set-object-heading OB=objectid, HE = heading
+ 3105 HH=INT(HE/256) : LL=HE-HH*256
+ 3110 POKE 768,18: POKE 769,OB: POKE 770,LL: POKE771,HH:  CALL PHYSICS
+ 3120 RETURN
+
+ 3200 REM get-object-heading OB=object -> HE = heading
+ 3210 POKE 768,19: CALL PHYSICS
+ 3220 HE = PEEK(768) + 256 * PEEK(769)
+ 3230 RETURN
+
+ 3300 REM set-object-rotation OB=object -> RT (1) can rotate, (0) cannot rotate
+ 3310 POKE 768,20: POKE 769,OB: POKE 770,RT: CALL PHYSICS
+ 3320 RETURN
+
  5000 REM load physics driver
  5010 D$=CHR$(4)
  5020 PRINT D$;"BLOAD SERIA"
- 5030 RETURN
+ 5030 POKE 8195, 31 : REM sets baud rate to 19200
+ 5040 RETURN
  

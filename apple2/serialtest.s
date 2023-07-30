@@ -44,10 +44,14 @@ CMD_ALLOOB = 16
 CMD_ADDVELH = 17
 CMD_SETH = 18
 CMD_GETH = 19
+CMD_SETSPIN = 20
 
 ENTRYPOINT
         ; this is where user CALL()'s come in... 
         ; $FA contains a command
+        JMP ACTUALENTRY
+CONTROLVAL DB %00011111        
+ACTUALENTRY
         LDA MLICMD
         CMP #CMD_INIT
         BEQ JP_INIT
@@ -95,6 +99,8 @@ ENTRYPOINT
         BEQ JP_SETH
         CMP #CMD_GETH
         BEQ JP_GETH
+        CMP #CMD_SETSPIN
+        BEQ JP_SETSPIN
         RTS
 
 JP_INIT 
@@ -143,6 +149,8 @@ JP_SETH
         JMP P_SETH
 JP_GETH
         JMP P_GETH
+JP_SETSPIN
+        JMP P_SETSPIN
 
 P_INIT
         JSR INIT
@@ -202,7 +210,11 @@ REQDIFFCHECK
         RTS 
 
 MEMUPDATEMO
-        JSR MEMWRITE
+        JSR MEMWRITE  ; write the data
+        LDX #REQUESTMORE_L
+        LDA #<REQUESTMORE
+        LDY #>REQUESTMORE
+        JSR SENDCOMMAND
         JSR RECVCOMMAND
         JMP REQDIFFCHECK
 MEMUPDATE
@@ -466,6 +478,20 @@ P_SETTYPE
         STA MLICMD
         RTS 
 
+P_SETSPIN
+        LDA MLIARGS
+        STA SPIN0 ; object number
+        LDA MLIARGS+1
+        STA SPIN1 ; true/false
+        LDX #SPIN_L
+        LDA #<SPIN
+        LDY #>SPIN
+        JSR SENDCOMMAND
+        JSR RECVCOMMAND
+        LDA COMMANDBUFFER+3
+        STA MLICMD
+        RTS 
+
 P_SETPOS
         LDA MLIARGS
         STA POS0 ; object number
@@ -496,7 +522,7 @@ INIT
 * BIT [3-0]  BAUD - 9600 (1110) / 19.2K (1111)
 *                   4800 (1100) / 2400  (1010)
 ******* USING N81 INTERNAL AT 9600 BAUD
-          LDA #%00010000
+          LDA CONTROLVAL
           STA CONTROLREG
 
 ********* LOAD VALUES INTO COMMANDREG
@@ -529,6 +555,10 @@ HELLO
 
 INITPHYSICS
            DB $01,$1,$0,$0
+
+REQUESTMORE_L = 3
+REQUESTMORE
+           DB $40,$0,$0
 
 CREATEOBJ_L = 4
 CREATEOBJ
@@ -605,6 +635,13 @@ TYPE
            DB $02,$00 ; size
 TYPE0  DB $00 ; object num
 TYPE1  DB $00 ; type: 0 = elastic, 1 = mechanical
+
+SPIN_L = 5
+SPIN
+           DB $23 ; command byte
+           DB $02,$00 ; size
+SPIN0      DB $00 ; object num
+SPIN1      DB $00 ; 1 = enable, 0 = disable
 
 POS_L = 6
 POS

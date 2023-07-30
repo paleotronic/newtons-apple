@@ -38,6 +38,10 @@ type PhysicsObject struct {
 	collided     bool
 	collidedWith int
 	elasticity   float64
+	CanSpin      bool
+	preCollH     float64
+	preColV      float64
+	CollAdjustV  bool
 }
 
 const rotatedBoxes = true
@@ -149,6 +153,12 @@ func (p *PhysicsEngine) BeginCollision(arb *cp.Arbiter, space *cp.Space, userDat
 			p.objects[aID].collidedWith = bID
 			p.objects[bID].collided = true
 			p.objects[bID].collidedWith = aID
+			p.objects[aID].preColV = p.objects[aID].body.Velocity().Length()
+			p.objects[bID].preColV = p.objects[bID].body.Velocity().Length()
+			p.objects[aID].preCollH = p.objects[aID].body.Angle()
+			p.objects[bID].preCollH = p.objects[bID].body.Angle()
+			p.objects[aID].CollAdjustV = true
+			p.objects[bID].CollAdjustV = true
 		}
 	}
 	return true
@@ -205,6 +215,7 @@ func headingToVector(h float64) cp.Vector {
 
 func (p *PhysicsEngine) addRect(slot int, width, height float64, mass float64, pos cp.Vector, vel cp.Vector, color int, bodyType int, replace bool) {
 	var elasticity float64 = 1
+	var spin bool
 	if b := p.objects[slot%maxObjects]; b != nil {
 		if replace {
 			elasticity = b.elasticity
@@ -212,6 +223,7 @@ func (p *PhysicsEngine) addRect(slot int, width, height float64, mass float64, p
 			vel = b.body.Velocity()
 			pos = b.body.Position()
 			color = b.color
+			spin = b.CanSpin
 		}
 		// p.space.EachShape(func(s *cp.Shape) {
 		// 	if s.Body() == b.body {
@@ -232,7 +244,7 @@ func (p *PhysicsEngine) addRect(slot int, width, height float64, mass float64, p
 	b.UserData = slot % maxObjects
 	b.SetVelocity(vel.X, vel.Y)
 	s.SetCollisionType(1)
-	p.objects[slot%maxObjects] = &PhysicsObject{elasticity: elasticity, color: color, body: b, width: width, height: height, kind: stRect, lastPubX: -1, lastPubY: -1}
+	p.objects[slot%maxObjects] = &PhysicsObject{CanSpin: spin, elasticity: elasticity, color: color, body: b, width: width, height: height, kind: stRect, lastPubX: -1, lastPubY: -1}
 }
 
 func (p *PhysicsEngine) RemoveObject(id int) {
@@ -256,6 +268,7 @@ func (p *PhysicsEngine) RemoveObject(id int) {
 
 func (p *PhysicsEngine) addCircle(slot int, radius float64, mass float64, pos cp.Vector, vel cp.Vector, color int, bodyType int, replace bool) {
 	var elasticity float64 = 1
+	var spin bool
 	if b := p.objects[slot%maxObjects]; b != nil {
 		if replace {
 			elasticity = b.elasticity
@@ -263,6 +276,7 @@ func (p *PhysicsEngine) addCircle(slot int, radius float64, mass float64, pos cp
 			vel = b.body.Velocity()
 			pos = b.body.Position()
 			color = b.color
+			spin = b.CanSpin
 		}
 		// p.space.EachShape(func(s *cp.Shape) {
 		// 	if s.Body() == b.body {
@@ -283,7 +297,7 @@ func (p *PhysicsEngine) addCircle(slot int, radius float64, mass float64, pos cp
 	b.SetVelocity(vel.X, vel.Y)
 	s.SetCollisionType(1)
 	b.UserData = slot % maxObjects
-	p.objects[slot%maxObjects] = &PhysicsObject{elasticity: elasticity, color: color, body: b, radius: radius, kind: stCircle, lastPubX: -1, lastPubY: -1}
+	p.objects[slot%maxObjects] = &PhysicsObject{CanSpin: spin, elasticity: elasticity, color: color, body: b, radius: radius, kind: stCircle, lastPubX: -1, lastPubY: -1}
 }
 
 func (p *PhysicsEngine) Start() {
@@ -312,6 +326,22 @@ func (p *PhysicsEngine) Step(dt float64) {
 	p.Lock()
 	defer p.Unlock()
 	p.space.Step(dt)
+	for _, o := range p.objects {
+		if o == nil {
+			continue
+		}
+		if !o.CanSpin {
+			o.body.SetAngle(o.lastPubH) // preserve angle
+			if o.CollAdjustV {
+				o.CollAdjustV = false
+				v := o.body.Velocity()
+				if v.Length() > 0 {
+					vn := v.Normalize().Mult(o.elasticity * o.preColV)
+					o.body.SetVelocity(vn.X, vn.Y)
+				}
+			}
+		}
+	}
 	//p.reportDeltas()
 }
 
@@ -485,6 +515,17 @@ func (p *PhysicsEngine) SetObjectElasticity(id int, e float64) {
 		s.SetElasticity(e)
 	})
 	o.elasticity = e
+}
+
+func (p *PhysicsEngine) SetObjectSpin(id int, spin bool) {
+	p.Lock()
+	defer p.Unlock()
+	o := p.objects[id%maxObjects]
+	if o == nil {
+		return
+	}
+	log.Printf("Setting object %d rotation to %v", id, spin)
+	o.CanSpin = spin
 }
 
 func (p *PhysicsEngine) SetObjectMass(id int, mass int) {

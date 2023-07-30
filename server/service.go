@@ -26,7 +26,7 @@ func (s *internalPhysicsService) reportData(deltas [][2]int) []*proto.ProtocolMe
 	var allData = []byte{
 		byte(len(deltas)),
 	}
-	const maxPayload = 64
+	var maxPayload = *flMaxDeltaSize
 	payloads := []*proto.ProtocolMessage{}
 	var count = 0
 	for _, d := range deltas {
@@ -67,8 +67,9 @@ func (s *internalPhysicsService) reportData(deltas [][2]int) []*proto.ProtocolMe
 
 func newPhysicsService() *internalPhysicsService {
 	ips := &internalPhysicsService{
-		buffer: nil,
-		pe:     NewPhysicsEngine(0, 0, 39, 39, 20*time.Millisecond),
+		buffer:            nil,
+		pe:                NewPhysicsEngine(0, 0, 39, 39, 20*time.Millisecond),
+		bufferedResponses: make(chan *proto.ProtocolMessage, 1024),
 	}
 	// ips.pe.space.SetGravity(cp.Vector{0, 2})
 	return ips
@@ -76,9 +77,10 @@ func newPhysicsService() *internalPhysicsService {
 
 type internalPhysicsService struct {
 	// stuff
-	buffer []byte
-	pe     *PhysicsEngine
-	w      Writer
+	buffer            []byte
+	pe                *PhysicsEngine
+	w                 Writer
+	bufferedResponses chan *proto.ProtocolMessage
 }
 
 func (s *internalPhysicsService) sendWelcome(w Writer) {
@@ -273,15 +275,26 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 			Type: proto.MsgGreeting,
 			Body: append([]byte("HELLO\r")),
 		}, nil
+	case proto.MsgRequestMoreData:
+		if len(s.bufferedResponses) > 0 {
+			pm := <-s.bufferedResponses
+			return pm, nil
+		} else {
+			return &proto.ProtocolMessage{
+				Type: proto.MsgOk,
+				Body: []byte{1},
+			}, nil
+		}
 	case proto.MsgRequestDeltas:
 		deltas := s.pe.GetDeltasWithBase(1024)
 		if len(deltas) > 0 {
 			payloads := s.reportData(deltas)
-			for _, m := range payloads[:len(payloads)-1] {
-				s.sendMessage(w, m)
-				time.Sleep(250 * time.Millisecond)
+			if len(payloads) > 1 {
+				for _, pm := range payloads[1:] {
+					s.bufferedResponses <- pm // queue them for successive calls
+				}
 			}
-			return payloads[len(payloads)-1], nil
+			return payloads[0], nil
 		} else {
 			return &proto.ProtocolMessage{
 				Type: proto.MsgOk,
@@ -488,6 +501,25 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 		id := params["objectId"].(byte)
 		e := float64(params["elasticity"].(byte)) / 100
 		s.pe.SetObjectElasticity(int(id), e)
+		return &proto.ProtocolMessage{
+			Type: proto.MsgOk,
+			Body: []byte{1},
+		}, nil
+	case proto.MsgSetSpin:
+		params, _, err := s.deserialize(
+			msg.Body,
+			[]proto.Argument{
+				{Name: "objectId", Type: proto.ArgTypeByte},
+				{Name: "spin", Type: proto.ArgTypeByte},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("Arguments: %+v", params)
+		id := params["objectId"].(byte)
+		spin := int(params["spin"].(byte)) != 0
+		s.pe.SetObjectSpin(int(id), spin)
 		return &proto.ProtocolMessage{
 			Type: proto.MsgOk,
 			Body: []byte{1},
