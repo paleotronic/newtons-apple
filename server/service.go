@@ -26,7 +26,7 @@ func (s *internalPhysicsService) reportData(deltas [][2]int) []*proto.ProtocolMe
 	var allData = []byte{
 		byte(len(deltas)),
 	}
-	const maxPayload = 192
+	const maxPayload = 64
 	payloads := []*proto.ProtocolMessage{}
 	var count = 0
 	for _, d := range deltas {
@@ -198,6 +198,24 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 			Type: proto.MsgOk,
 			Body: []byte{0x01},
 		}, nil
+	case proto.MsgSetHeading:
+		params, _, err := s.deserialize(
+			msg.Body,
+			[]proto.Argument{
+				{Name: "objectId", Type: proto.ArgTypeByte},
+				{Name: "heading", Type: proto.ArgTypeWord},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		id := params["objectId"].(int)
+		h := float64(params["heading"].(int))
+		s.pe.SetObjectHeading(id, h)
+		return &proto.ProtocolMessage{
+			Type: proto.MsgOk,
+			Body: []byte{0x01},
+		}, nil
 	case proto.MsgSetVelocityHeading:
 		params, _, err := s.deserialize(
 			msg.Body,
@@ -261,6 +279,7 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 			payloads := s.reportData(deltas)
 			for _, m := range payloads[:len(payloads)-1] {
 				s.sendMessage(w, m)
+				time.Sleep(250 * time.Millisecond)
 			}
 			return payloads[len(payloads)-1], nil
 		} else {
@@ -339,6 +358,31 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 			Type: proto.MsgGetOOBResponse,
 			Body: []byte{byte(oob)},
 		}, nil
+	case proto.MsgGetHeading:
+		params, _, err := s.deserialize(
+			msg.Body,
+			[]proto.Argument{
+				{Name: "objectId", Type: proto.ArgTypeByte},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("Arguments: %+v", params)
+		id := params["objectId"].(byte)
+		heading := s.pe.GetObjectHeading(int(id))
+		data, err := s.serialize(
+			[]proto.Argument{
+				{Value: heading, Type: proto.ArgTypeWord},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		return &proto.ProtocolMessage{
+			Type: proto.MsgGetOOBResponse,
+			Body: data,
+		}, nil
 	case proto.MsgGetColor:
 		params, _, err := s.deserialize(
 			msg.Body,
@@ -379,7 +423,7 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 		y := int(params["y"].(byte)) + h/2
 		c := int(params["color"].(byte))
 		s.pe.addRect(
-			int(id), float64(w), float64(h), 1000, cp.Vector{X: float64(x) + 0.5, Y: float64(y)}, cp.Vector{X: 0, Y: 0},
+			int(id), float64(w)-0.1, float64(h), 1000, cp.Vector{X: float64(x) + 0.5, Y: float64(y)}, cp.Vector{X: 0, Y: 0},
 			c, cp.BODY_STATIC,
 			false,
 		)

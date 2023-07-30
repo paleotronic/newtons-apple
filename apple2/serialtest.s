@@ -42,6 +42,8 @@ CMD_SETFORCE = 14
 CMD_SETELAST = 15
 CMD_ALLOOB = 16
 CMD_ADDVELH = 17
+CMD_SETH = 18
+CMD_GETH = 19
 
 ENTRYPOINT
         ; this is where user CALL()'s come in... 
@@ -89,6 +91,10 @@ ENTRYPOINT
         BEQ JP_ALLOOB
         CMP #CMD_ADDVELH
         BEQ JP_ADDVELH
+        CMP #CMD_SETH
+        BEQ JP_SETH
+        CMP #CMD_GETH
+        BEQ JP_GETH
         RTS
 
 JP_INIT 
@@ -133,6 +139,10 @@ JP_ALLOOB
         JMP P_ALLOOB
 JP_ADDVELH
         JMP P_ADDVELH
+JP_SETH
+        JMP P_SETH
+JP_GETH
+        JMP P_GETH
 
 P_INIT
         JSR INIT
@@ -236,6 +246,20 @@ P_GETCOL
         JSR RECVCOMMAND
         LDA COMMANDBUFFER+3
         STA MLICMD
+        RTS 
+
+P_GETH
+        LDA MLIARGS
+        STA GETH0 ; object number
+        LDX #GETH_L
+        LDA #<GETH
+        LDY #>GETH
+        JSR SENDCOMMAND
+        JSR RECVCOMMAND
+        LDA COMMANDBUFFER+3
+        STA MLICMD
+        LDA COMMANDBUFFER+4
+        STA MLICMD+1
         RTS 
 
 P_GETOOB
@@ -378,6 +402,22 @@ P_SETCOL
         LDX #COLOR_L
         LDA #<COLOR
         LDY #>COLOR
+        JSR SENDCOMMAND
+        JSR RECVCOMMAND
+        LDA COMMANDBUFFER+3
+        STA MLICMD
+        RTS   
+
+P_SETH
+        LDA MLIARGS
+        STA SETH0 ; object number
+        LDA MLIARGS+1
+        STA SETH1 ; angle lo
+        LDA MLIARGS+2
+        STA SETH2 ; angle lo
+        LDX #SETH_L
+        LDA #<SETH
+        LDY #>SETH
         JSR SENDCOMMAND
         JSR RECVCOMMAND
         LDA COMMANDBUFFER+3
@@ -537,6 +577,14 @@ COLOR
 COLOR0  DB $00 ; object num
 COLOR1  DB $00 ; col (0-15)
 
+SETH_L = 5
+SETH
+           DB $21 ; command byte
+           DB $02,$00 ; size
+SETH0  DB $00 ; object num
+SETH1  DB $00 ; col (0-15)
+SETH2  DB $00
+
 ELASTIC_L = 5
 ELASTIC
            DB $08 ; command byte
@@ -603,6 +651,12 @@ GETCOL
            DB $15
            DB $01,$00
 GETCOL0    DB $00
+
+GETH_L = 4
+GETH
+           DB $22
+           DB $01,$00
+GETH0      DB $00
 
 GETOOB_L = 4
 GETOOB

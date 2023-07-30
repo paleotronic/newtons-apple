@@ -1,9 +1,9 @@
  5 GR : BC = 0 : FC = 0 : HOME : ? "BOXES: ";BC 
- 10 BW=2 : BH=4 : REM block sizes
+ 10 BW=4 : BH=4 : REM block sizes
  20 PHYSICS=8192 : GOSUB 5000 : GOSUB 1100
  30 OB=0:PX=5:PY=37:WW=30:HH=2:CO=3:GOSUB 2400: REM floor 
  40 GOSUB 1700 : REM start physics
- 50 FO=1: HE=0: GOSUB 2700: REM set force of 50 units, 180 deg (downwards)
+ 50 FO=1: HE=180: GOSUB 2700: REM set force of 50 units, 180 deg (downwards)
  60 BX=1 : REM next box
  70 GOSUB 500 : REM spawn next box
  80 FOR Y=1 TO 50 : NEXT Y
@@ -13,7 +13,7 @@
 
  500 REM create box
  510 OB=BX : GOSUB 1500 : REM create obj 'bx'
- 520 OB=BX : EL=40 : GOSUB 2800: REM set elasticity to 20 percent
+ 520 OB=BX : EL=20 : GOSUB 2800: REM set elasticity to 20 percent
  530 OB=BX : CO=INT(RND(1)*10)+5 : GOSUB 1200 : REM set color to random
  550 OB=BX : VX=0 : VY=0 : GOSUB 1400 : REM set velocity (px/sec)
  560 OB=BX : PX=5+INT(RND(1)*20)+1 : PY=1 : GOSUB 1600 : REM set object position
@@ -116,7 +116,7 @@
  2920 OO = PEEK(768) : OB = PEEK(769)
  2930 RETURN
 
- 3000 REM set-velocity-heading OB=object-id VE=vel HE=heading (0-359)
+ 3000 REM add-velocity-heading OB=object-id VE=vel HE=heading (0-359)
  3005 HH=INT(HE/256) : LL=HE-HH*256
  3010 POKE 768,13: POKE 769,OB: POKE770,VE: POKE771,LL: POKE772,HH: CALL PHYSICS
  3020 RETURN

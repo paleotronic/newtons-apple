@@ -10,7 +10,7 @@ import (
 )
 
 type SerialService interface {
-	ServeSerial(ctx context.Context, r Reader, w Writer)
+	ServeSerial(ctx context.Context, r Reader, w Writer, port serial.Port)
 }
 
 func ListenAndServeSerial(ctx context.Context, s SerialService, device string, baudRate int, dataBits int, stopBits string, parity string) error {
@@ -58,12 +58,14 @@ func ListenAndServeSerial(ctx context.Context, s SerialService, device string, b
 		return fmt.Errorf("Error configuring port %s: %+v: %v", device, *newMode, err)
 	}
 
-	s.ServeSerial(ctx, port, port)
+	port.SetReadTimeout(serial.NoTimeout)
+
+	s.ServeSerial(ctx, port, port, port)
 
 	return nil
 }
 
-func (s internalPhysicsService) ServeSerial(ctx context.Context, r Reader, w Writer) {
+func (s internalPhysicsService) ServeSerial(ctx context.Context, r Reader, w Writer, port serial.Port) {
 	log.Printf("PhysicsService: new SERIAL connection")
 
 	// s.sendWelcome(w)

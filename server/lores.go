@@ -55,6 +55,8 @@ func (lrb *LoResBuffer) Read(idx int) byte {
 	return lrb.Data[idx]
 }
 
+const xratio = 1
+
 func (lrb *LoResBuffer) plot(x, y int, c byte) {
 	if x < 0 || x >= 40 {
 		return
@@ -82,12 +84,27 @@ func (lrb *LoResBuffer) Plot(x, y float64, c byte) {
 	lrb.plot(int(math.Round(x)), int(math.Round(y)), c)
 }
 
+func (lrb *LoResBuffer) DrawRotatedBox(cx, cy, heading, width, height float64, c byte) {
+	lrb.Lock()
+	defer lrb.Unlock()
+	hv := cp.ForAngle(heading)
+	cen := cp.Vector{X: cx, Y: cy}
+	for y := -height / 2; y <= height/2; y += 0.5 {
+		for x := -width / 2; x <= width/2; x += 0.5 {
+			pos := cp.Vector{X: x, Y: y}
+			pos = pos.Rotate(hv)
+			pos = pos.Add(cen)
+			lrb.plot(int(math.Round(pos.X*xratio)), int(math.Round(pos.Y)), c)
+		}
+	}
+}
+
 func (lrb *LoResBuffer) DrawBox(x1, y1, x2, y2 float64, c byte) {
 	lrb.Lock()
 	defer lrb.Unlock()
 	for y := y1; y <= y2; y++ {
 		for x := x1; x <= x2; x++ {
-			lrb.plot(int(math.Round(x)), int(math.Round(y)), c)
+			lrb.plot(int(math.Round(x*xratio)), int(math.Round(y)), c)
 		}
 	}
 }
@@ -105,7 +122,7 @@ func (lrb *LoResBuffer) DrawCircle(cx, cy float64, r float64, c byte) {
 		for x := x1; x <= x2; x++ {
 			p = cp.Vector{X: float64(x), Y: float64(y)}
 			if p.Sub(center).Length() <= float64(r) {
-				lrb.plot(int(math.Round(x)), int(math.Round(y)), c)
+				lrb.plot(int(math.Round(x*xratio)), int(math.Round(y)), c)
 			}
 		}
 	}

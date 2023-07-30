@@ -40,6 +40,8 @@ type PhysicsObject struct {
 	elasticity   float64
 }
 
+const rotatedBoxes = true
+
 func (po *PhysicsObject) undraw(screen *LoResBuffer, color int) {
 	if po.lastPubX == -1 {
 		return
@@ -54,13 +56,17 @@ func (po *PhysicsObject) undraw(screen *LoResBuffer, color int) {
 			screen.DrawCircle(po.lastPubX, po.lastPubY, po.radius, byte(color))
 		})
 	case stRect:
-		screen.WithDeltasDo(func(screen *LoResBuffer) {
-			x1 := po.lastPubX - po.width/2
-			x2 := po.lastPubX + po.width/2
-			y1 := po.lastPubY - po.height/2
-			y2 := po.lastPubY + po.height/2
-			screen.DrawBox(x1, y1, x2, y2, byte(color))
-		})
+		if rotatedBoxes {
+			screen.DrawRotatedBox(po.lastPubX, po.lastPubY, po.lastPubH, po.width, po.height, byte(color))
+		} else {
+			screen.WithDeltasDo(func(screen *LoResBuffer) {
+				x1 := po.lastPubX - po.width/2
+				x2 := po.lastPubX + po.width/2
+				y1 := po.lastPubY - po.height/2
+				y2 := po.lastPubY + po.height/2
+				screen.DrawBox(x1, y1, x2, y2, byte(color))
+			})
+		}
 	}
 }
 
@@ -70,7 +76,7 @@ func radToDeg(r float64) float64 {
 
 func (po *PhysicsObject) draw(screen *LoResBuffer, color int) {
 	var pos = po.body.Position()
-	var heading = radToDeg(po.body.Angle())
+	var heading = po.body.Angle()
 	var cx, cy = pos.X, pos.Y
 	// use current pos
 	switch po.kind {
@@ -83,13 +89,17 @@ func (po *PhysicsObject) draw(screen *LoResBuffer, color int) {
 			screen.DrawCircle(cx, cy, po.radius/2, byte(color))
 		})
 	case stRect:
-		screen.WithDeltasDo(func(screen *LoResBuffer) {
-			x1 := cx - po.width/2
-			x2 := cx + po.width/2
-			y1 := cy - po.height/2
-			y2 := cy + po.height/2
-			screen.DrawBox(x1, y1, x2, y2, byte(color))
-		})
+		if rotatedBoxes {
+			screen.DrawRotatedBox(cx, cy, heading, po.width, po.height, byte(color))
+		} else {
+			screen.WithDeltasDo(func(screen *LoResBuffer) {
+				x1 := cx - po.width/2
+				x2 := cx + po.width/2
+				y1 := cy - po.height/2
+				y2 := cy + po.height/2
+				screen.DrawBox(x1, y1, x2, y2, byte(color))
+			})
+		}
 	}
 	po.lastPubX = cx
 	po.lastPubY = cy
@@ -127,7 +137,6 @@ func NewPhysicsEngine(x0, y0, x1, y1 float64, interval time.Duration) *PhysicsEn
 }
 
 func (p *PhysicsEngine) SetForce(f float64, heading float64) {
-	heading = 360 - heading
 	fv := headingToVector(heading).Mult(f)
 	p.space.SetGravity(fv)
 }
@@ -190,7 +199,7 @@ func (p *PhysicsEngine) createBoundingBox() {
 func headingToVector(h float64) cp.Vector {
 	h = 360 - h
 	m := mgl64.QuatRotate(mgl64.DegToRad(h), mgl64.Vec3{0, 0, 1}).Mat4()
-	v := mgl64.TransformNormal(mgl64.Vec3{0, 1, 0}, m)
+	v := mgl64.TransformNormal(mgl64.Vec3{0, -1, 0}, m)
 	return cp.Vector{X: v[0], Y: v[1]}
 }
 
@@ -387,7 +396,6 @@ func (p *PhysicsEngine) GetObjectOOB(id int) int {
 }
 
 func (p *PhysicsEngine) SetObjectVelocityHeading(id int, v float64, heading float64) {
-	heading = 360 - heading
 	p.Lock()
 	defer p.Unlock()
 	o := p.objects[id%maxObjects]
@@ -399,7 +407,6 @@ func (p *PhysicsEngine) SetObjectVelocityHeading(id int, v float64, heading floa
 }
 
 func (p *PhysicsEngine) AddObjectVelocityHeading(id int, v float64, heading float64) {
-	heading = 360 - heading
 	p.Lock()
 	defer p.Unlock()
 	o := p.objects[id%maxObjects]
@@ -496,6 +503,29 @@ func (p *PhysicsEngine) SetObjectMass(id int, mass int) {
 	// }
 }
 
+func (p *PhysicsEngine) SetObjectHeading(id int, heading float64) {
+	p.Lock()
+	defer p.Unlock()
+	o := p.objects[id%maxObjects]
+	if o == nil {
+		return
+	}
+	log.Printf("Setting object %d heading to %f", id, heading)
+	a := mgl64.DegToRad(360 - heading)
+	o.body.SetAngle(a)
+}
+
+func (p *PhysicsEngine) GetObjectHeading(id int) int {
+	p.Lock()
+	defer p.Unlock()
+	o := p.objects[id%maxObjects]
+	if o == nil {
+		return 0
+	}
+	a := 360 - mgl64.RadToDeg(o.body.Angle())
+	return int(math.Round(a))
+}
+
 func (p *PhysicsEngine) SetObjectColor(id int, color int) {
 	p.Lock()
 	defer p.Unlock()
@@ -546,10 +576,6 @@ func (p *PhysicsEngine) reportDeltas() {
 		// log.Printf("Body at %d, %d", cx, cy)
 		// if cx != b.lastPubX || cy != b.lastPubY {
 		//p.screen.WithDeltasDo(func(lrb *LoResBuffer) {
-		a := radToDeg(b.body.Angle())
-		if b.kind == stRect && b.lastPubH != a {
-			log.Printf("Rotation to %f deg!", a)
-		}
 		b.undraw(p.screen, 0)
 		// p.screen.Plot(cx, cy, byte(b.color))
 		b.draw(p.screen, b.color)
