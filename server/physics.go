@@ -446,6 +446,7 @@ func (p *PhysicsEngine) AddObjectVelocityHeading(id int, v float64, heading floa
 	fv := headingToVector(heading).Mult(v)
 	ov := o.body.Velocity()
 	fv = fv.Add(ov)
+	log.Printf("Object %d vel addition h=%f, v=%f -> %+v", id, heading, v, fv)
 	o.body.SetVelocity(fv.X, fv.Y)
 }
 
@@ -545,6 +546,7 @@ func (p *PhysicsEngine) SetObjectMass(id int, mass int) {
 }
 
 func (p *PhysicsEngine) SetObjectHeading(id int, heading float64) {
+	log.Printf("In set object heading.")
 	p.Lock()
 	defer p.Unlock()
 	o := p.objects[id%maxObjects]
@@ -554,6 +556,8 @@ func (p *PhysicsEngine) SetObjectHeading(id int, heading float64) {
 	log.Printf("Setting object %d heading to %f", id, heading)
 	a := mgl64.DegToRad(360 - heading)
 	o.body.SetAngle(a)
+	o.undraw(p.screen, 0)
+	o.draw(p.screen, o.color)
 }
 
 func (p *PhysicsEngine) GetObjectHeading(id int) int {

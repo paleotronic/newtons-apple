@@ -426,7 +426,7 @@ P_SETH
         LDA MLIARGS+1
         STA SETH1 ; angle lo
         LDA MLIARGS+2
-        STA SETH2 ; angle lo
+        STA SETH2 ; angle hi
         LDX #SETH_L
         LDA #<SETH
         LDY #>SETH
@@ -607,13 +607,13 @@ COLOR
 COLOR0  DB $00 ; object num
 COLOR1  DB $00 ; col (0-15)
 
-SETH_L = 5
+SETH_L = 6
 SETH
            DB $21 ; command byte
-           DB $02,$00 ; size
+           DB $03,$00 ; size
 SETH0  DB $00 ; object num
-SETH1  DB $00 ; col (0-15)
-SETH2  DB $00
+SETH1  DB $00 ; heading lo
+SETH2  DB $00 ; heading hi
 
 ELASTIC_L = 5
 ELASTIC

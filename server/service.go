@@ -211,9 +211,10 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 		if err != nil {
 			return nil, err
 		}
-		id := params["objectId"].(int)
+		log.Printf("Arguments: %+v", params)
+		id := params["objectId"].(byte)
 		h := float64(params["heading"].(int))
-		s.pe.SetObjectHeading(id, h)
+		s.pe.SetObjectHeading(int(id), h)
 		return &proto.ProtocolMessage{
 			Type: proto.MsgOk,
 			Body: []byte{0x01},
@@ -230,10 +231,10 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 		if err != nil {
 			return nil, err
 		}
-		id := params["objectId"].(int)
+		id := params["objectId"].(byte)
 		v := float64(params["velocity"].(byte))
 		h := float64(params["heading"].(int))
-		s.pe.SetObjectVelocityHeading(id, v, h)
+		s.pe.SetObjectVelocityHeading(int(id), v, h)
 		return &proto.ProtocolMessage{
 			Type: proto.MsgOk,
 			Body: []byte{0x01},
@@ -250,10 +251,10 @@ func (s *internalPhysicsService) handleMessage(msg *proto.ProtocolMessage, w Wri
 		if err != nil {
 			return nil, err
 		}
-		id := params["objectId"].(int)
+		id := params["objectId"].(byte)
 		v := float64(params["velocity"].(byte))
 		h := float64(params["heading"].(int))
-		s.pe.AddObjectVelocityHeading(id, v, h)
+		s.pe.AddObjectVelocityHeading(int(id), v, h)
 		return &proto.ProtocolMessage{
 			Type: proto.MsgOk,
 			Body: []byte{0x01},

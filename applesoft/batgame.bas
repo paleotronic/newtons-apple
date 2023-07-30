@@ -16,6 +16,7 @@
  150 OB=1 : VX=2+INT(RND(1)*3) : VY=2+INT(RND(1)*3) : GOSUB 1400 : REM set velocity (px/sec)
  160 OB=1 : MA=5 : GOSUB 1000 : REM set mass to 15 KG
  170 OB=1 : PX=6 : PY=20 : GOSUB 1600 : REM set object position
+ 180 OB=1 : WW=1 : HH=1 : GOSUB 2300 : REM set object rect
  
  200 OB=2:PX=0:PY=0:WW=40:HH=1:CO=3:GOSUB 2400: REM top wall
  210 OB=3:PX=0:PY=39:WW=40:HH=1:CO=3:GOSUB 2400: REM bot wall
