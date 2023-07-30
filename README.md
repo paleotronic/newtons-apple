@@ -38,7 +38,7 @@ Usage of ./physics-server:
   -serial
         Run on serial.
   -serial-port string
-        Serial port to run service on. (default "/dev/pts/9")
+        Serial port to run service on. (default "/dev/ttyS0")
   -stop-bits string
         Stop bits (1,1.5,2) (default "1")
   -telnet-port string
