@@ -13,7 +13,7 @@ import (
 var (
 	flTelnetPort   = flag.String("telnet-port", "5555", "TCP Port to run service on.")
 	flSerial       = flag.Bool("serial", false, "Run on serial.")
-	flSerialPort   = flag.String("serial-port", "/dev/pts/9", "Serial port to run service on.")
+	flSerialPort   = flag.String("serial-port", "/dev/ttyS0", "Serial port to run service on.")
 	flBaudRate     = flag.Int("baud-rate", 115200, "Baud rate")
 	flStopBits     = flag.String("stop-bits", "1", "Stop bits (1,1.5,2)")
 	flParity       = flag.String("parity", "N", "Parity (E=even,O=odd,M=mark,S=space,N=none).")
