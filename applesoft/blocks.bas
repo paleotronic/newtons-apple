@@ -137,7 +137,7 @@
 
  5000 REM load physics driver
  5010 D$=CHR$(4)
- 5020 PRINT D$;"BLOAD SERIA"
+ 5020 PRINT D$;"BLOAD PHYSICS"
  5030 POKE 8195, 31 : REM sets baud rate to 19200
  5040 RETURN
  
